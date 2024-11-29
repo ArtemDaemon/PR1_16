@@ -141,12 +141,15 @@ main proc
     call addFloatNumbers
     pop ecx
 
+    ; EAX.EBX = -X/Y + Y^2 + 3
+    push ecx
+    mov ecx, 3
+    mov edx, 0
+    call addFloatNumbers
+    pop ecx
+
     ; === Конвертация результата в строку ===
     push edi
-    ;mov eax, 0                          ; Целая часть числа
-    ;mov ebx, 0                          ; Дробная часть числа
-    ;mov ecx, 0                          ; Число нулей в начале дробной части
-    ;mov esi, 0                          ; Флаг отрицательного числа (0/1)
     lea edi, resultBuffer               ; Привязываем буфер для результата
     call floatToString                  ; Вызываем процедуру для конвертации результата в строку
     pop edi
