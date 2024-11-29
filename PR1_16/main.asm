@@ -134,11 +134,12 @@ main proc
     mov edx, yValue
     imul edx, edx
 
-    ;==========================================
-    mov eax, edx
-    mov ebx, 0
-    mov ecx, 0
-    mov esi, 0
+    ; EAX.EBX = -X/Y + Y^2
+    push ecx
+    mov ecx, edx
+    mov edx, 0
+    call addFloatNumbers
+    pop ecx
 
     ; === Конвертация результата в строку ===
     push edi
@@ -391,5 +392,132 @@ done:
     
     ret
 divideIntNumbers ENDP
+
+addFloatNumbers PROC
+    ; === Процедура для складывания двух дробных чисел ===
+    ; Вход:
+    ;   EAX = Целая часть первого слагаемого
+    ;   EBX = Дробная часть первого слагаемого
+    ;   ECX = Целая часть второго слагаемого
+    ;   EDX = Дробная часть второго слагаемого
+    ;   ESI = Факт отрицательного значения первого слагаемого
+    ; Выход:
+    ;   EAX = Целая часть результата
+    ;   EBX = Дробная часть результата
+    ;   ESI = Факт отрицательного значения
+
+    ; Проверяем отрицательное ли число
+    test esi, esi
+    jz positiveNumber
+
+negativeNumber:
+    xor esi, esi
+    xchg eax, ecx
+    xchg ebx, edx
+
+    call subtractFloatNumbers
+    jmp done
+
+positiveNumber:
+    add eax, ecx
+    add ebx, edx
+
+done:
+    ret
+
+addFloatNumbers ENDP
+
+subtractFloatNumbers PROC
+    ; === Процедура для вычитания одного дробного числа из другого ===
+    ; Вход:
+    ;   EAX = целая часть первого числа
+    ;   EBX = дробная часть первого числа
+    ;   ECX = целая часть второго числа
+    ;   EDX = дробная часть второго числа
+    ; Выход:
+    ;   EAX = результат целой части
+    ;   EBX = результат дробной части
+    ;   ESI = флаг отрицательного результата (0/1)
+
+    cmp eax, ecx
+    ja skipSwap
+    jb doSwap
+
+    cmp ebx, edx
+    ja skipSwap
+
+doSwap:
+    xchg eax, ecx
+    xchg ebx, edx
+    mov esi, 1
+    jmp checkFractionPart
+
+skipSwap:
+    xor esi, esi
+
+checkFractionPart:
+    cmp ebx, edx
+    jb borrow
+    jmp noBorrow
+
+borrow:
+    dec eax
+
+    push eax
+    push ecx
+    push edx
+    push ebx
+
+    mov eax, edx
+    call getBorrowAdd
+    
+    pop ebx
+    pop edx
+    pop ecx
+    add ebx, eax
+    pop eax
+    
+noBorrow:
+    sub eax, ecx
+    sub ebx, edx
+    ret
+
+subtractFloatNumbers ENDP
+
+getBorrowAdd PROC
+    ; === Процедура для получения числа, которое прибавится к меньшей части при вычитании ===
+    ; Например, если из 0 вычитается 17, то к 0 прибавляется 100 (10 ^ (число символов в 17))
+    ; Вход:
+    ;   EAX = Число X, символы которого нужно посчитать
+    ; Выход:
+    ;   EAX = 10 ^ (число символов в X)
+    ; Используется:
+    ;   ECX = Счетчик
+    ;   EDX = Хранение остатка деления
+    ;   EBX = Хранение делителя
+    xor ecx, ecx
+countDigits:
+    cmp eax, 0             ; Проверяем, не равно ли X нулю
+    je computePower        ; Если равно, переходим к вычислению Y
+    inc ecx                ; Увеличиваем счетчик цифр
+    cdq                    ; Очищаем EDX
+    mov ebx, 10            ; Делитель = 10
+    div ebx                ; EAX = EAX / 10 (деление нацело)
+    jmp countDigits        ; Повторяем цикл
+
+computePower:
+    mov eax, 1             ; Начальное значение для Y = 10^0 = 1
+    mov ebx, 10            ; Основание степени = 10
+
+powerLoop:
+    cmp ecx, 0             ; Проверяем, сколько еще итераций
+    je done         ; Если 0, завершаем
+    imul eax, ebx          ; Умножаем результат на 10
+    dec ecx                ; Уменьшаем счетчик итераций
+    jmp powerLoop          ; Повторяем
+
+done:
+    ret
+getBorrowAdd ENDP
 
 end main
