@@ -130,6 +130,16 @@ main proc
     ; ECX - число нулей в начале дробной части
     mov esi, 1
 
+    ; EDX = Y^2
+    mov edx, yValue
+    imul edx, edx
+
+    ;==========================================
+    mov eax, edx
+    mov ebx, 0
+    mov ecx, 0
+    mov esi, 0
+
     ; === Конвертация результата в строку ===
     push edi
     ;mov eax, 0                          ; Целая часть числа
